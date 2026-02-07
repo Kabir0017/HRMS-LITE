@@ -4,7 +4,6 @@ import axios from "axios";
 
 const API = "https://hrms-lite-jap7.onrender.com";
 
-
 function App() {
   const [employees, setEmployees] = useState([]);
   const [form, setForm] = useState({
@@ -17,10 +16,16 @@ function App() {
     employee_id: "",
     status: "Present",
   });
+  const [loading, setLoading] = useState(false);
 
   const fetchEmployees = async () => {
-    const res = await axios.get(`${API}/employees`);
-    setEmployees(res.data);
+    try {
+      const res = await axios.get(`${API}/employees`);
+      setEmployees(res.data);
+    } catch (err) {
+      console.error("Fetch employees failed:", err);
+      alert("Failed to fetch employees. Check console.");
+    }
   };
 
   useEffect(() => {
@@ -29,22 +34,40 @@ function App() {
 
   const addEmployee = async (e) => {
     e.preventDefault();
-    await axios.post(`${API}/employees`, form);
-    alert("Employee added successfully!");
-    setForm({ employee_id: "", full_name: "", email: "", department: "" });
-    fetchEmployees();
+    try {
+      setLoading(true);
+      await axios.post(`${API}/employees`, form);
+      setForm({ employee_id: "", full_name: "", email: "", department: "" });
+      await fetchEmployees(); // refresh list
+      alert("Employee added successfully!");
+    } catch (err) {
+      console.error("Add employee failed:", err);
+      alert("Add failed. Check console.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const deleteEmployee = async (id) => {
-    await axios.delete(`${API}/employees/${id}`);
-    fetchEmployees();
+    try {
+      await axios.delete(`${API}/employees/${id}`);
+      await fetchEmployees();
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Delete failed. Check console.");
+    }
   };
 
   const markAttendance = async (e) => {
     e.preventDefault();
-    await axios.post(`${API}/attendance`, attendance);
-    alert("Attendance marked!");
-    setAttendance({ employee_id: "", status: "Present" });
+    try {
+      await axios.post(`${API}/attendance`, attendance);
+      setAttendance({ employee_id: "", status: "Present" });
+      alert("Attendance marked!");
+    } catch (err) {
+      console.error("Attendance failed:", err);
+      alert("Attendance failed. Check console.");
+    }
   };
 
   return (
@@ -75,23 +98,29 @@ function App() {
             placeholder="Employee ID"
             value={form.employee_id}
             onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
+            required
           />
           <input
             placeholder="Full Name"
             value={form.full_name}
             onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+            required
           />
           <input
             placeholder="Email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
+            required
           />
           <input
             placeholder="Department"
             value={form.department}
             onChange={(e) => setForm({ ...form, department: e.target.value })}
+            required
           />
-          <button type="submit">Add</button>
+          <button type="submit" disabled={loading}>
+            {loading ? "Adding..." : "Add"}
+          </button>
         </form>
       </div>
 
@@ -122,6 +151,7 @@ function App() {
             onChange={(e) =>
               setAttendance({ ...attendance, employee_id: e.target.value })
             }
+            required
           />
           <select
             value={attendance.status}
