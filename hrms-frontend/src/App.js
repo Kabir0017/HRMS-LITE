@@ -2,7 +2,8 @@ import "./App.css";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const API = "http://127.0.0.1:8000"; // change later when deployed
+const API = "https://hrms-lite-jap7.onrender.com";
+
 
 function App() {
   const [employees, setEmployees] = useState([]);
