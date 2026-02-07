@@ -1,17 +1,18 @@
-from fastapi.middleware.cors import CORSMiddleware
-
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import create_engine, Column, Integer, String, Date
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from datetime import date
 
+# Database
 DATABASE_URL = "sqlite:///./hrms.db"
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base = declarative_base()
 
+# Models
 class Employee(Base):
     __tablename__ = "employees"
     id = Column(Integer, primary_key=True, index=True)
@@ -29,25 +30,19 @@ class Attendance(Base):
 
 Base.metadata.create_all(bind=engine)
 
+# App
 app = FastAPI()
+
+# ✅ CORS (this fixes Vercel -> Render calls)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # allow all for now
+    allow_origins=["*"],  # allow all origins for now
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # or ["*"] for now
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+# Dependency
 def get_db():
     db = SessionLocal()
     try:
@@ -55,6 +50,7 @@ def get_db():
     finally:
         db.close()
 
+# Schemas
 class EmployeeCreate(BaseModel):
     employee_id: str
     full_name: str
@@ -65,6 +61,7 @@ class AttendanceCreate(BaseModel):
     employee_id: str
     status: str
 
+# Routes
 @app.get("/")
 def read_root():
     return {"message": "HRMS Backend is running"}
@@ -81,6 +78,15 @@ def add_employee(emp: EmployeeCreate, db: Session = Depends(get_db)):
 def list_employees(db: Session = Depends(get_db)):
     return db.query(Employee).all()
 
+@app.delete("/employees/{emp_id}")
+def delete_employee(emp_id: int, db: Session = Depends(get_db)):
+    emp = db.query(Employee).filter(Employee.id == emp_id).first()
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    db.delete(emp)
+    db.commit()
+    return {"message": "Employee deleted"}
+
 @app.post("/attendance")
 def mark_attendance(att: AttendanceCreate, db: Session = Depends(get_db)):
     record = Attendance(
@@ -96,11 +102,3 @@ def mark_attendance(att: AttendanceCreate, db: Session = Depends(get_db)):
 @app.get("/attendance/{employee_id}")
 def get_attendance(employee_id: str, db: Session = Depends(get_db)):
     return db.query(Attendance).filter(Attendance.employee_id == employee_id).all()
-@app.delete("/employees/{emp_id}")
-def delete_employee(emp_id: int, db: Session = Depends(get_db)):
-    emp = db.query(Employee).filter(Employee.id == emp_id).first()
-    if not emp:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    db.delete(emp)
-    db.commit()
-    return {"message": "Employee deleted"}
