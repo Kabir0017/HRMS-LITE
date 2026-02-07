@@ -1,3 +1,5 @@
+from fastapi.middleware.cors import CORSMiddleware
+
 from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import create_engine, Column, Integer, String, Date
@@ -28,6 +30,14 @@ class Attendance(Base):
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # allow all for now
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
